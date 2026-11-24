@@ -1,0 +1,157 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smart Classroom IoT Dashboard</title>
+  <style>
+    * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { background: #0f172a; color: #f8fafc; margin: 0; padding: 24px; }
+    .header { max-width: 1000px; margin: 0 auto 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+    .header h1 { margin: 0; font-size: 24px; color: #38bdf8; }
+    .badge { padding: 8px 16px; border-radius: 999px; font-weight: bold; font-size: 14px; }
+    .eco-on { background: #065f46; color: #34d399; border: 1px solid #10b981; }
+    .eco-off { background: #1e293b; color: #94a3b8; border: 1px solid #475569; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; max-width: 1000px; margin: 0 auto; }
+    .card { background: #1e293b; padding: 20px; border-radius: 14px; border: 1px solid #334155; box-shadow: 0 4px 12px rgba(0,0,0,0.25); }
+    .label { font-size: 13px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; }
+    .value { font-size: 32px; font-weight: 700; margin-top: 8px; color: #f8fafc; }
+    .sub { font-size: 13px; color: #64748b; margin-top: 4px; }
+    .status-on { color: #4ade80; }
+    .status-off { color: #f87171; }
+    .controls { max-width: 1000px; margin: 24px auto 0; background: #1e293b; padding: 20px; border-radius: 14px; border: 1px solid #334155; display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between; }
+    button { background: #0284c7; color: white; border: none; padding: 10px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; }
+    button:hover { background: #0369a1; }
+    button.red { background: #dc2626; }
+    button.green { background: #16a34a; }
+    input[type=range] { accent-color: #38bdf8; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div>
+      <h1>Smart Classroom Automation Dashboard</h1>
+      <div style="color:#94a3b8; font-size:14px;">Room 304 • Occupancy & Thermal Control System</div>
+    </div>
+    <div id="modeBadge" class="badge eco-off">NORMAL MODE</div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="label">Occupancy / Capacity</div>
+      <div class="value" id="occVal">0 / 60</div>
+      <div class="sub">Total Classroom Capacity: 60</div>
+    </div>
+
+    <div class="card">
+      <div class="label">Available Seats</div>
+      <div class="value" id="availVal" style="color:#38bdf8;">60</div>
+      <div class="sub" id="occPct">0% Occupied</div>
+    </div>
+
+    <div class="card">
+      <div class="label">Room Temperature</div>
+      <div class="value" id="tempVal">25.0 °C</div>
+      <div class="sub" id="threshSub">Fan Threshold: 26.0 °C</div>
+    </div>
+
+    <div class="card">
+      <div class="label">Classroom Lights</div>
+      <div class="value status-off" id="lightVal">OFF</div>
+      <div class="sub" id="daySub">Ambient Light: Daylight</div>
+    </div>
+
+    <div class="card">
+      <div class="label">Ceiling Fans</div>
+      <div class="value status-off" id="fanVal">OFF</div>
+      <div class="sub">4x 75W Automated Fans</div>
+    </div>
+
+    <div class="card">
+      <div class="label">Electrical Energy Saved</div>
+      <div class="value" id="energyVal" style="color:#34d399;">0.00 Wh</div>
+      <div class="sub" id="moneyVal">Est. Savings: ₹0.00</div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <div>
+      <button class="green" onclick="changeStudents(1)">+ Student Enter</button>
+      <button class="red" onclick="changeStudents(-1)">- Student Exit</button>
+      <button onclick="toggleEco()">Toggle Eco Mode</button>
+      <button onclick="toggleDaylight()">Toggle Day / Dark</button>
+    </div>
+    <div>
+      <label style="font-size:14px;">Simulate Temp: <b id="sliderLbl">25.0°C</b></label><br/>
+      <input type="range" min="20" max="38" step="0.5" value="25" oninput="setTemp(this.value)" />
+    </div>
+  </div>
+
+  <script>
+    const CAPACITY = 60;
+    let students = 0;
+    let temp = 25.0;
+    let ecoMode = false;
+    let isDark = false;
+    let energySavedWh = 0.0;
+
+    function changeStudents(delta) {
+      students = Math.max(0, Math.min(CAPACITY, students + delta));
+      updateUI();
+    }
+
+    function toggleEco() {
+      ecoMode = !ecoMode;
+      updateUI();
+    }
+
+    function toggleDaylight() {
+      isDark = !isDark;
+      updateUI();
+    }
+
+    function setTemp(val) {
+      temp = parseFloat(val);
+      document.getElementById('sliderLbl').innerText = temp.toFixed(1) + '°C';
+      updateUI();
+    }
+
+    function updateUI() {
+      const avail = CAPACITY - students;
+      const tempThresh = ecoMode ? 30.0 : 26.0;
+      const occupied = students > 0;
+      const lightOn = occupied && isDark;
+      const fanOn = occupied && (temp >= tempThresh);
+
+      document.getElementById('occVal').innerText = `${students} / ${CAPACITY}`;
+      document.getElementById('availVal').innerText = avail;
+      document.getElementById('occPct').innerText = `${Math.round((students / CAPACITY) * 100)}% Occupied`;
+      document.getElementById('tempVal').innerText = `${temp.toFixed(1)} °C`;
+      document.getElementById('threshSub').innerText = `Fan Threshold: ${tempThresh.toFixed(1)} °C`;
+      document.getElementById('daySub').innerText = `Ambient Light: ${isDark ? 'Dark / Evening' : 'Sufficient Daylight'}`;
+
+      const badge = document.getElementById('modeBadge');
+      badge.innerText = ecoMode ? 'ENERGY SAVING (ECO) MODE' : 'NORMAL MODE';
+      badge.className = ecoMode ? 'badge eco-on' : 'badge eco-off';
+
+      const lEl = document.getElementById('lightVal');
+      lEl.innerText = lightOn ? 'ON' : 'OFF';
+      lEl.className = 'value ' + (lightOn ? 'status-on' : 'status-off');
+
+      const fEl = document.getElementById('fanVal');
+      fEl.innerText = fanOn ? 'ON' : 'OFF';
+      fEl.className = 'value ' + (fanOn ? 'status-on' : 'status-off');
+
+      // Accumulate energy saved every second (accelerated 60x for live demo visibility)
+      let wattsSaved = (!lightOn ? 160 : 0) + (!fanOn ? 300 : 0);
+      energySavedWh += (wattsSaved / 3600) * 60;
+      document.getElementById('energyVal').innerText = `${energySavedWh.toFixed(2)} Wh`;
+      document.getElementById('moneyVal').innerText = `Est. Savings: ₹${((energySavedWh / 1000) * 7.5).toFixed(3)}`;
+    }
+
+    setInterval(updateUI, 1000);
+    updateUI();
+  </script>
+</body>
+</html>
